@@ -10,7 +10,7 @@ const index="init1234"
 const server = app.listen(port, () => {
   console.log(`Gun server running on port ${port}🔥`)
 })
-mongoose.connect('mongodb://192.168.1.126:27017/Sample', {
+mongoose.connect('mongodb://192.168.1.104:27017/Sample', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -25,11 +25,32 @@ const YourModel = mongoose.model('Data', {
 });
 const gun =Gun({  web: server, radisk: true, localStorage:  true });
 
+// function listen_all_data()
+// {
+//   console.log("starting listening all data ...")
+//   for (let i=1;i<=3000;i++)
+//     {
+//       gun.get(index+'/'+pad(i,3)).on((node) => { 
+//         console.log(node)
+//         const newData = new YourModel({
+//           _id:pad(i,3),
+//           Email: node.Email,
+//           Institution: node.Institution,
+//           Name:node.Name,
+//           Phone : node.Phone,
+//           Verified : node.Verified
+//         });
+//     });
+//   }
+// }
+
+node_listner()
+
 function uploadall_data()
 {
   for (let i=1;i<=3000;i++)
     {
-      gun.get(index+'/'+pad(i,3)).on((node) => { 
+      gun.get(index+'/'+pad(i,3)).once((node) => { 
         console.log(node)
         const newData = new YourModel({
           _id:pad(i,3),
@@ -87,6 +108,19 @@ app.get('/getdata',(req, res)=>
     // Handle any errors that occur during retrieval
   });
 })
+
+app.get('/verifiedcount',(req, res)=>
+{
+  getcount({ Verified: true })
+  .then((data) => {
+    console.log("count is"+data)
+    res.send({"data":data})
+  })
+  .catch((error) => {
+    // Handle any errors that occur during retrieval
+  });
+})
+
 
 app.get('/update',(req, res)=>
 {
@@ -167,6 +201,7 @@ updateData(query, newData)
 
 function node_listner()
 {
+  console.log("listeing all data in gun server")
   for (let i=1;i<=3000;i++)
       {
         gun.get(index+'/'+pad(i,3)).on((node) => { 
@@ -178,4 +213,16 @@ function node_listner()
             }
         })
       }
+}
+
+async function getcount(query) {
+  try {
+    const count = await YourModel.countDocuments(query);
+
+    console.log('Count of documents matching the condition:', count);
+    return count;
+  } catch (error) {
+    console.error('Error counting documents:', error);
+    throw error;
+  }
 }
