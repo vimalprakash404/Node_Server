@@ -6,11 +6,12 @@ const port =  process.env.PORT ||5054
 const Gun = require('gun')
 const mongoose = require('mongoose');
 const http = require('http');
+const bodyParser = require('body-parser');
 const index="init1234"
 const server = app.listen(port, () => {
   console.log(`Gun server running on port ${port}🔥`)
 })
-mongoose.connect('mongodb://192.168.1.104:27017/Sample', {
+mongoose.connect('mongodb://localhost/Sample', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -23,26 +24,29 @@ const YourModel = mongoose.model('Data', {
   Phone: String,
   Verified: Boolean
 });
+
+const Ipdata = mongoose.model('Ip', {
+  _id: String,
+});
 const gun =Gun({  web: server, radisk: true, localStorage:  true });
 
-// function listen_all_data()
-// {
-//   console.log("starting listening all data ...")
-//   for (let i=1;i<=3000;i++)
-//     {
-//       gun.get(index+'/'+pad(i,3)).on((node) => { 
-//         console.log(node)
-//         const newData = new YourModel({
-//           _id:pad(i,3),
-//           Email: node.Email,
-//           Institution: node.Institution,
-//           Name:node.Name,
-//           Phone : node.Phone,
-//           Verified : node.Verified
-//         });
-//     });
-//   }
-// }
+async function getip()
+{
+  try {
+    const allData = await Ipdata.find();
+
+    if (allData.length > 0) {
+      console.log('All data retrieved successfully:', allData);
+      return allData;
+    } else {
+      console.log('No data found in the collection.');
+      return [];
+    }
+  } catch (error) {
+    console.error('Error retrieving data:', error);
+    throw error;
+  }
+}
 
 node_listner()
 
@@ -90,6 +94,49 @@ function uploadall_data()
 }
 
 app.use(Gun.serve)
+app.use(bodyParser.json());
+
+function upload_ip(newData)
+{
+  
+}
+app.post('/data', async (req, res) => {
+  try {
+    const newData = req.body; // Data sent in the request body
+    Ipdata.findOne(newData)
+    .then((existingData) => {
+      if (existingData) {
+        console.log('Data already exists in MongoDB:', existingData);
+        res.send("already exist")
+      } else {
+        // Data does not exist, insert it into MongoDB and Gun.js
+        const document = new Ipdata(newData);
+
+        document.save()
+          .then((savedDocument) => {
+            console.log('Data saved to Mongoose:', savedDocument);
+            res.send("saved")
+            // Now, you can also store the data in Gun.js if needed
+            
+          })
+          .catch((error) => {
+            console.error('Error saving data to Mongoose:', error);
+            res.send("already exist"+ error)
+          });
+      }
+    })
+    .catch((error) => {
+      console.error('Error checking for existing data in MongoDB:', error);
+    });
+    
+    } catch (error) {
+    console.error('Error saving data to MongoDB:', error);
+    res.status(500).send('Internal Server Error'); // Handle errors with a 500 Internal Server Error response
+  }
+});
+
+
+ 
 app.get('/hello',(req, res)=>
 {
   const data_set ={ 'data' : "vimal" }
@@ -109,6 +156,16 @@ app.get('/getdata',(req, res)=>
   });
 })
 
+app.get('/getip',(req, res)=>
+{
+  getip()
+  .then((data) => {
+    res.send(data)
+  })
+  .catch((error) => {
+    // Handle any errors that occur during retrieval
+  });
+})
 app.get('/verifiedcount',(req, res)=>
 {
   getcount({ Verified: true })
@@ -126,6 +183,8 @@ app.get('/update',(req, res)=>
 {
   node_listner()
 })
+
+
 
 
 gun.get("init123").on((node) => { 
@@ -181,6 +240,7 @@ async function getAllData() {
     throw error;
   }
 }
+
 
 
 function updateuser(user_id, verified_status)
